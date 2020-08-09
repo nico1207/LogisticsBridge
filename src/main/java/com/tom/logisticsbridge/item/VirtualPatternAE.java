@@ -11,6 +11,7 @@ import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.inventory.InventoryCrafting;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.world.World;
@@ -58,6 +59,16 @@ public class VirtualPatternAE extends Item implements ICraftingPatternItem {
 		ot.setTag("out", output.writeToNBT(new NBTTagCompound()));
 		return CACHE.computeIfAbsent(ot, VirtualPatternAE::create);
 	}
+	public static ICraftingPatternDetails create(List<ItemStack> inputs, ItemStack output){
+		NBTTagCompound ot = new NBTTagCompound();
+		NBTTagList inputList = new NBTTagList();
+		for (ItemStack input : inputs) {
+			inputList.appendTag(input.writeToNBT(new NBTTagCompound()));
+		}
+		ot.setTag("inlist", inputList);
+		ot.setTag("out", output.writeToNBT(new NBTTagCompound()));
+		return CACHE.computeIfAbsent(ot, VirtualPatternAE::create);
+	}
 	public static ICraftingPatternDetails create(ItemStack output, IDynamicPatternDetailsAE handler){
 		NBTTagCompound ot = output.writeToNBT(new NBTTagCompound());
 		ot.setTag(DYNAMIC_PATTERN_ID, IDynamicPatternDetailsAE.save(handler));
@@ -69,16 +80,26 @@ public class VirtualPatternAE extends Item implements ICraftingPatternItem {
 		ot.removeTag(DYNAMIC_PATTERN_ID);
 		NBTTagCompound in = ot.getCompoundTag("in");
 		NBTTagCompound out = ot.getCompoundTag("out");
+		NBTBase inlistbase = ot.getTag("inlist");
+		NBTTagList inlist = null;
+		if (inlistbase != null)
+			inlist = (NBTTagList) inlistbase;
 		if(!out.hasNoTags())ot = out;
 		is.setTagCompound(new NBTTagCompound());
 		NBTTagCompound tag = is.getTagCompound();
 		tag.setTag("out", ot);
-		NBTTagList list = new NBTTagList();
-		tag.setTag("in", list);
-		if(in.hasNoTags())
-			list.appendTag(new ItemStack(LogisticsBridge.logisticsFakeItem).writeToNBT(new NBTTagCompound()));
-		else
-			list.appendTag(in);
+		if (inlist == null) {
+			NBTTagList list = new NBTTagList();
+			tag.setTag("in", list);
+			if(in.hasNoTags())
+				list.appendTag(new ItemStack(LogisticsBridge.logisticsFakeItem).writeToNBT(new NBTTagCompound()));
+			else
+				list.appendTag(in);
+		}
+		else {
+			tag.setTag("in", inlist);
+		}
+
 		if(!dyTag.hasNoTags())tag.setTag("dynamic", dyTag);
 		return getPatternForItem(is);
 	}

@@ -3,6 +3,7 @@ package com.tom.logisticsbridge.block;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
@@ -29,5 +30,10 @@ public class BlockBridgeAE extends AEBaseTileBlock {
 			b.blockClicked(playerIn);
 		}
 		return true;
+	}
+
+	@Override
+	public TileEntity createNewTileEntity(World worldIn, int meta) {
+		return new TileEntityBridgeAE();
 	}
 }

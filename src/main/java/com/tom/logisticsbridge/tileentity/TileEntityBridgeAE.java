@@ -15,11 +15,14 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Blocks;
+import net.minecraft.init.Items;
 import net.minecraft.inventory.InventoryCrafting;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.ITickable;
+import net.minecraft.util.Tuple;
 import net.minecraft.util.text.TextComponentString;
 
 import net.minecraftforge.fml.common.Loader;
@@ -357,14 +360,16 @@ IItemHandlerModifiable, IDynamicPatternDetailsAE, IBridge {
 		try {
 			if(Loader.instance().getLoaderState() == LoaderState.SERVER_STOPPING)return out;
 			List<ItemStack> pi = reqapi.getProvidedItems();
-			List<ItemStack> ci = reqapi.getCraftedItems();
+			//List<ItemStack> ci = reqapi.getCraftedItems();
+			List<Tuple<List<ItemStack>, ItemStack>> recipes = reqapi.getRecipes();
 			pi.stream().map(ITEMS::createStack).map(s -> {
 				s.setCraftable(true);
 				s.setCountRequestable(s.getStackSize());
 				s.setStackSize(0);
 				return s;
 			}).forEach(out::add);
-			ci.stream().map(ITEMS::createStack).forEach(out::addCrafting);
+			//ci.stream().map(ITEMS::createStack).forEach(out::addCrafting);
+			recipes.stream().map(r -> ITEMS.createStack(r.getSecond())).forEach(out::addCrafting);
 			TileEntityWrapper wr = new TileEntityWrapper(this);
 			pi.stream().map(i -> {
 				ItemStack r = i.copy();
@@ -372,7 +377,8 @@ IItemHandlerModifiable, IDynamicPatternDetailsAE, IBridge {
 				fakeItems.add(ITEMS.createStack(LogisticsBridge.fakeStack(r, i.getCount())));
 				return VirtualPatternAE.create(r, wr);
 			}).forEach(craftings::add);
-			ci.stream().map(i -> VirtualPatternAE.create(i, wr)).forEach(craftings::add);
+			//ci.stream().map(i -> VirtualPatternAE.create(i, wr)).forEach(craftings::add);
+			recipes.stream().map(r -> VirtualPatternAE.create(r.getFirst(), r.getSecond())).forEach(craftings::add);
 			fakeItems.forEach(out::addStorage);
 		} catch(Exception e){
 			e.printStackTrace();

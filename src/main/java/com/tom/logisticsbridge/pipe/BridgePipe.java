@@ -19,12 +19,16 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.tom.logisticsbridge.module.ModuleCrafterExt;
+import logisticspipes.modules.ModuleCrafter;
+import logisticspipes.pipes.PipeLogisticsChassi;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.Tuple;
 import net.minecraft.util.text.TextComponentTranslation;
 
 import com.tom.logisticsbridge.LogisticsBridge;
@@ -251,7 +255,7 @@ public class BridgePipe extends CoreRoutedPipe implements IProvideItems, IReques
 			}
 		}
 
-		if (!_orderItemManager.hasOrders(ResourceType.PROVIDER, ResourceType.CRAFTING) || getWorld().getTotalWorldTime() % 6 != 0) {
+		if (!_orderItemManager.hasOrders(ResourceType.PROVIDER, ResourceType.CRAFTING)) {
 			return;
 		}
 
@@ -293,7 +297,7 @@ public class BridgePipe extends CoreRoutedPipe implements IProvideItems, IReques
 	}
 
 	protected int itemsToExtract() {
-		return 8;
+		return 64;
 	}
 
 	protected int stacksToExtract() {
@@ -524,6 +528,37 @@ public class BridgePipe extends CoreRoutedPipe implements IProvideItems, IReques
 			}
 			return list;
 		}
+
+		public List<Tuple<List<ItemStack>, ItemStack>> getRecipes() {
+			if(!isEnabled())return Collections.emptyList();
+			if (stillNeedReplace()) {
+				return new ArrayList<>();
+			}
+			IRouter myRouter = getRouter();
+			List<ExitRoute> exits = new ArrayList<>(myRouter.getIRoutersByCost());
+			ArrayList<Tuple<List<ItemStack>, ItemStack>> recipes = new ArrayList<>();
+			for (ExitRoute exit : exits) {
+				if (exit.destination.getPipe() instanceof PipeLogisticsChassi) {
+					PipeLogisticsChassi chassi = (PipeLogisticsChassi) exit.destination.getPipe();
+					for (int i = 0; i < chassi.getChassiSize(); i++) {
+						LogisticsModule subModule = chassi.getSubModule(i);
+						if (subModule instanceof ModuleCrafter) {
+							ModuleCrafter crafter = (ModuleCrafter) subModule;
+							ArrayList<ItemStack> inputs = new ArrayList<>();
+							for (int inputIndex = 0; inputIndex < 9; inputIndex++) {
+								if (crafter.getDummyInventory().getIDStackInSlot(inputIndex) != null && crafter.getDummyInventory().getIDStackInSlot(inputIndex).getStackSize() > 0)
+									inputs.add(crafter.getDummyInventory().getIDStackInSlot(inputIndex).unsafeMakeNormalStack());
+							}
+							ItemStack output = crafter.getDummyInventory().getIDStackInSlot(9).unsafeMakeNormalStack(); // Output;
+							recipes.add(new Tuple<>(inputs, output));
+						}
+					}
+				}
+			}
+
+			return recipes;
+		}
+
 		/**
 		 * @param craft bits: processExtra,onlyCraft,enableCraft
 		 * */
